@@ -11,19 +11,33 @@ const colorInput = document.querySelector('.color__input'); // поле с на�
 const weightInput = document.querySelector('.weight__input'); // поле с весом
 const addActionButton = document.querySelector('.add__action__btn'); // кнопка добавления
 
+const minWeightInput = document.querySelector('.minweight__input'); // минимальное значение фильтрации
+const maxWeightInput = document.querySelector('.maxweight__input'); // максимальное значение фильтрации
+
 // список фруктов в JSON формате
 let fruitsJSON = `[
   {"kind": "Мангустин", "color": "фиолетовый", "weight": 13},
   {"kind": "Дуриан", "color": "зеленый", "weight": 35},
-  {"kind": "Личи", "color": "розово-красный", "weight": 17},
+  {"kind": "Личи", "color": "красный", "weight": 17},
   {"kind": "Карамбола", "color": "желтый", "weight": 28},
-  {"kind": "Тамаринд", "color": "светло-коричневый", "weight": 22}
+  {"kind": "Тамаринд", "color": "коричневый", "weight": 22}
 ]`;
 
-
+// список цветов фруктов
+const priority = [
+  'красный',
+  'оранжевый',
+  'желтый',
+  'зеленый',
+  'синий',
+  'фиолетовый',
+  'коричневый',
+];
 
 // преобразование JSON в объект JavaScript
 let fruits = JSON.parse(fruitsJSON);
+// копируем исходный массив для обнуления фильтрации
+let filteredFruits = fruits.slice(0);
 
 /*** ОТОБРАЖЕНИЕ ***/
 
@@ -42,9 +56,11 @@ const display = () => {
       let color;
       if (fruits[i].color === 'фиолетовый') return color = 'fruit_violet';
       if (fruits[i].color === 'зеленый') return color = 'fruit_green';
-      if (fruits[i].color === 'розово-красный') return color = 'fruit_carmazin';
+      if (fruits[i].color === 'красный') return color = 'fruit_red';
       if (fruits[i].color === 'желтый') return color = 'fruit_yellow';
-      if (fruits[i].color === 'светло-коричневый') return color = 'fruit_lightbrown';      
+      if (fruits[i].color === 'коричневый') return color = 'fruit_brown';
+      if (fruits[i].color === 'оранжевый') return color = 'fruit_orange';
+      if (fruits[i].color === 'синий') return color = 'fruit_blue';
     }
 
     // выводим li
@@ -89,7 +105,7 @@ const getRandomInt = (min, max) => {
 // перемешивание массива
 const shuffleFruits = () => {
   let result = [];
-  fruitsStart = fruits.slice(0); // копируем текущий массив для дальнейшего сравнения
+  fruitsStart = filteredFruits.slice(0); // копируем текущий массив для дальнейшего сравнения
   let randomItem; // сюда записываем рандомное число
 
   // ATTENTION: сейчас при клике вы запустите бесконечный цикл и браузер зависнет
@@ -121,6 +137,7 @@ const shuffleFruits = () => {
   }
 
   fruits = result;
+  return fruits;
 };
 
 shuffleButton.addEventListener('click', () => {
@@ -132,9 +149,41 @@ shuffleButton.addEventListener('click', () => {
 
 // фильтрация массива
 const filterFruits = () => {
-  fruits.filter((item) => {
+  const result = [];
+  fruits = filteredFruits.slice(0);
+
+  let valueMin = minWeightInput.value;
+  let valueMax = maxWeightInput.value;
+
+  // проверка на пустые и некорректные значения
+  if (!(valueMin && valueMin >= 0)) {
+    alert('Минимальное значение введено некорректно');
+    return;
+  };
+
+  if (!(valueMax && valueMax >= 0 && valueMax >= valueMin)) {
+    alert('Максимальное значение введено некорректно');
+    return;
+  }; 
+
+  fruits.filter((item, index, fruit) => {
     // TODO: допишите функцию
+    let fruitWeight = fruit[index].weight;
+
+    if (fruitWeight >= valueMin && fruitWeight <= valueMax) {
+      result.push(JSON.parse(`{
+        "kind": "${fruit[index].kind}", 
+        "color": "${fruit[index].color}", 
+        "weight": ${fruitWeight}}
+      `));
+    }
   });
+
+  // обнуляем форму
+  minWeightInput.value = '';
+  maxWeightInput.value = '';
+
+  fruits = result;
 };
 
 filterButton.addEventListener('click', () => {
@@ -149,15 +198,65 @@ let sortTime = '-'; // инициализация состояния време�
 
 const comparationColor = (a, b) => {
   // TODO: допишите функцию сравнения двух элементов по цвету
+  return a.color > b.color ? true : false;
 };
 
+function partition(arr, left, right) {
+  let pivot = arr[Math.floor((right + left) / 2)];
+  let i = left;
+  let j = right;
+
+  while (i <= j) {
+    while (arr[i].color < pivot.color) {
+      i++;        
+    }
+    while (arr[j].color > pivot.color) {
+      j--;        
+    }
+
+    if (i <= j) {
+      let temp = arr[i];
+      arr[i] = arr[j];
+      arr[j] = temp;
+      
+      i++;
+      j--;
+    }
+  }
+  return i;
+}
+
 const sortAPI = {
-  bubbleSort(arr, comparation) {
+  bubbleSort(arr) {
     // TODO: допишите функцию сортировки пузырьком
+    for (let i = 0; i < arr.length - 1; i++) {
+      for (let j = 0; j < arr.length - 1 - i; j++) {
+        if (arr[j].color > arr[j + 1].color) {
+          let temp = arr[j + 1];
+          arr[j + 1] = arr[j];
+          arr[j] = temp;
+        }
+      }
+    }
   },
 
-  quickSort(arr, comparation) {
+  quickSort(arr, left, right) {
     // TODO: допишите функцию быстрой сортировки
+    let index;
+
+    if (arr.length > 1) {
+      index = partition(arr, left, right);
+
+      if (left < index - 1) {
+        sortAPI.quickSort(arr, left, index - 1);
+      }
+  
+      if (index < right) {
+        sortAPI.quickSort(arr, index, right);
+      }
+    }
+
+    return arr;
   },
 
   // выполняет сортировку и производит замер времени
@@ -175,14 +274,23 @@ sortTimeLabel.textContent = sortTime;
 
 sortChangeButton.addEventListener('click', () => {
   // TODO: переключать значение sortKind между 'bubbleSort' / 'quickSort'
+  if (sortKind == 'bubbleSort') {
+    sortKind = 'quickSort';
+    sortKindLabel.textContent = sortKind;
+  } else {
+    sortKind = 'bubbleSort';
+    sortKindLabel.textContent = sortKind;
+  }
 });
 
 sortActionButton.addEventListener('click', () => {
   // TODO: вывести в sortTimeLabel значение 'sorting...'
+  sortTimeLabel.textContent = 'sorting...';
   const sort = sortAPI[sortKind];
-  sortAPI.startSort(sort, fruits, comparationColor);
+  sortAPI.startSort(sort, fruits, 0, fruits.length - 1);
   display();
   // TODO: вывести в sortTimeLabel значение sortTime
+  sortTimeLabel.textContent = sortTime;
 });
 
 /*** ДОБАВИТЬ ФРУКТ ***/
@@ -190,5 +298,51 @@ sortActionButton.addEventListener('click', () => {
 addActionButton.addEventListener('click', () => {
   // TODO: создание и добавление нового фрукта в массив fruits
   // необходимые значения берем из kindInput, colorInput, weightInput
+
+  // проверка на пустые и корректные значения
+  if (kindInput.value == '') {
+    alert('Фрукт должен как-то называться');
+    return;
+  }
+
+  if (colorInput.value != '') {
+    let priorityColor = priority.includes(colorInput.value);
+    if (!priorityColor) {
+      alert(`Фрукт должен иметь цвет из списка ${priority}`);
+      return;
+    }
+  } else {
+    alert('Фрукт должен иметь какой-то цвет');
+    return;
+  }
+
+  if (weightInput.value != '') {
+    let weightVal = parseInt(weightInput.value);
+    if (!(weightVal && weightVal > 0)) {
+      alert('Вес фрукта введен некорректно');
+      return;
+    } 
+  } else {
+    alert('Фрукт должен иметь какой-то вес');
+    return;
+  }
+
+  // добавляем новый фрукт в конец массива
+  let push = (JSON.parse(`{
+    "kind": "${kindInput.value}",
+    "color": "${colorInput.value}",
+    "weight": ${weightInput.value}
+  }`));
+
+  fruits.push(push);
+  filteredFruits.push(push);
+
+  // очищаем форму
+  kindInput.value = '';
+  colorInput.value = '';
+  weightInput.value = '';
+
   display();
+  // возвращаем новый массив и новый массив для фильтрации
+  return fruits, filteredFruits;
 });
