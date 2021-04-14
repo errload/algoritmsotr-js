@@ -260,9 +260,9 @@ const sortAPI = {
   },
 
   // выполняет сортировку и производит замер времени
-  startSort(sort, arr, comparation) {
+  startSort(sort, arr) {
     const start = new Date().getTime();
-    sort(arr, comparation);
+    sort(arr, 0, fruits.length - 1);
     const end = new Date().getTime();
     sortTime = `${end - start} ms`;
   },
